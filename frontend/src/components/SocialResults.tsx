@@ -1,10 +1,11 @@
+import React, { useState } from 'react';
 
 interface SocialResult {
   site: string;
   url: string;
   category: string;
   username: string;
-  status: number;
+  status: number | string; // Updated to support both status codes and string flags like "Blocked"
 }
 
 interface SocialResultsProps {
@@ -37,6 +38,14 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function SocialResults({ results, categories, totalFound, totalChecked }: SocialResultsProps) {
+  // State tracking for which username blocks are toggled open
+  // Key format: "category-username"
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+
+  const toggleDropdown = (key: string) => {
+    setOpenDropdowns((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   if (results.length === 0) {
     return (
       <div style={{ 
@@ -89,6 +98,15 @@ export function SocialResults({ results, categories, totalFound, totalChecked }:
         const color = CATEGORY_COLORS[category] || '#888';
         const label = CATEGORY_LABELS[category] || category;
 
+        // Group the items within this category by their attempted username variations
+        const itemsByUsername = items.reduce((acc, item) => {
+          if (!acc[item.username]) {
+            acc[item.username] = [];
+          }
+          acc[item.username].push(item);
+          return acc;
+        }, {} as Record<string, SocialResult[]>);
+
         return (
           <div key={category} style={{ marginBottom: '1.5rem' }}>
             <h4 style={{
@@ -99,46 +117,120 @@ export function SocialResults({ results, categories, totalFound, totalChecked }:
             }}>
               {label} ({items.length})
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
-              {items.map((result, idx) => (
-                <a
-                  key={idx}
-                  href={result.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    background: '#141414',
-                    border: `1px solid ${color}30`,
-                    padding: '0.75rem 1rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = color;
-                    e.currentTarget.style.background = '#1a1a1a';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = `${color}30`;
-                    e.currentTarget.style.background = '#141414';
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
-                    <span style={{ color: '#fff', fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                      {result.site}
-                    </span>
-                    <span style={{ color: '#aaa', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                      @{result.username}
-                    </span>
+
+            {/* Username Dropdowns Stack */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {Object.entries(itemsByUsername).map(([username, userResults]) => {
+                const dropdownKey = `${category}-${username}`;
+                const isOpen = !!openDropdowns[dropdownKey];
+
+                return (
+                  <div key={username} style={{ background: '#101010', border: '1px solid #222' }}>
+                    {/* Dropdown Header Trigger */}
+                    <div
+                      onClick={() => toggleDropdown(dropdownKey)}
+                      style={{
+                        background: '#141414',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        borderBottom: isOpen ? '1px solid #222' : 'none',
+                      }}
+                    >
+                      <span style={{ color: color, fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                        @{username}
+                      </span>
+                      <span style={{ color: '#666', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                        {isOpen ? '▲ CLOSE' : `▼ EXPAND (${userResults.length})`}
+                      </span>
+                    </div>
+
+                    {/* Conditional Dropdown Grid Body */}
+                    {isOpen && (
+                      <div style={{
+                        padding: '0.75rem',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        gap: '0.5rem',
+                        background: '#0d0d0d'
+                      }}>
+                        {userResults.map((result, idx) => {
+                          const isBlocked = result.status === 'Blocked';
+
+                          return (
+                            <a
+                              key={idx}
+                              href={result.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                background: '#141414',
+                                border: isBlocked ? '1px dashed #f59e0b50' : `1px solid ${color}30`,
+                                padding: '0.75rem 1rem',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                textDecoration: 'none',
+                                transition: 'border-color 0.2s, background 0.2s',
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = isBlocked ? '#f59e0b' : color;
+                                e.currentTarget.style.background = '#1a1a1a';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = isBlocked ? '#f59e0b50' : `${color}30`;
+                                e.currentTarget.style.background = '#141414';
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+                                <span style={{ color: '#fff', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                                  {result.site}
+                                </span>
+                              </div>
+                              
+                              {/* Conditionally render dynamic state tags */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {isBlocked ? (
+                                  <span style={{
+                                    color: '#f59e0b',
+                                    background: '#f59e0b15',
+                                    border: '1px solid #f59e0b40',
+                                    fontSize: '0.7rem',
+                                    fontFamily: 'monospace',
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: '2px'
+                                  }}>
+                                    BLOCKED
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    color: '#00ff66',
+                                    background: '#00ff6610',
+                                    border: '1px solid #00ff6630',
+                                    fontSize: '0.7rem',
+                                    fontFamily: 'monospace',
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: '2px'
+                                  }}>
+                                    FOUND
+                                  </span>
+                                )}
+                                <span style={{ color: '#444', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                  ↗
+                                </span>
+                              </div>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <span style={{ color: '#666', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                    ↗
-                  </span>
-                </a>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

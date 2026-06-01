@@ -343,6 +343,26 @@ async def _check_site(
     async with semaphore:
         try:
             resp = await client.get(url, timeout=12, follow_redirects=True)
+            
+            is_blocked_status = resp.status_code in [403, 429]
+            
+            body_lower = resp.text.lower()
+            is_blocked_text = (
+                "cloudflare" in body_lower or 
+                "sucuri" in body_lower or
+                "consent.youtube.com" in str(resp.url) or
+                "consentui" in resp.text
+            )
+            
+            if is_blocked_status or is_blocked_text:
+                return {
+                    "site": site_name,
+                    "url": site_cfg["url"].format(username).replace("/about.json", ""),
+                    "category": site_cfg.get("category", "other"),
+                    "status": "Blocked", # flags the website as blocked
+                    "username": username
+                }
+            
             exists = False
 
             if error_type == "status_code":
@@ -370,11 +390,15 @@ async def _check_site(
                     "site": site_name,
                     "url": site_cfg["url"].format(username).replace("/about.json", ""),
                     "category": site_cfg.get("category", "other"),
-                    "status": resp.status_code,
+                    "status": "Found",
                     "username": username
                 }
+                
+        except (httpx.ConnectTimeout, httpx.ReadTimeout):
+            pass
         except Exception:
             pass
+            
     return None
 
 async def scan_username(username: str) -> dict:
