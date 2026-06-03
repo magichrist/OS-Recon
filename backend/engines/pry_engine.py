@@ -54,6 +54,20 @@ async def _execute_stealth_browser(profile: TargetProfile) -> PryResult:
         await page.wait_for('body', timeout=12)
         # Give heavy client-side SPAs time to hydrate state objects
         await page.sleep(3)
+
+        # YouTube Cookie Consent Bypass
+        if "youtube.com" in profile.url:
+            await page.evaluate("""
+                (() => {
+                    let elements = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"], ytd-button-renderer'));
+                    let match = elements.find(el => {
+                        let text = (el.textContent || el.value || el.getAttribute('aria-label') || '').toLowerCase();
+                        return text.includes('accept all') || text.includes('i agree');
+                    });
+                    if (match) match.click();
+                })()
+            """)
+            await page.sleep(2)  # Give the page a moment to reload/settle after clicking
         
         # Inject platform-targeted data mining routines
         raw_payload = await page.evaluate("""
@@ -76,7 +90,7 @@ async def _execute_stealth_browser(profile: TargetProfile) -> PryResult:
                     document.querySelectorAll("a[href]").forEach(a => {
                         let href = a.href;
                         if (href && href.startsWith("http") && !href.includes(host)) {
-                            if (!href.includes("terms") && !href.includes("privacy") && !found.includes(href)) {
+                            if (!href.includes("terms") && !href.includes("policies") && !href.includes("privacy") && !found.includes(href)) {
                                 found.push(href);
                             }
                         }

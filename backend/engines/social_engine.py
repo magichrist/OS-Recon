@@ -153,11 +153,6 @@ SITES = {
         "errorMsg": "Page not found",
         "category": "development",
     },
-    "Replit": {
-        "url": "https://replit.com/@{}",
-        "errorType": "status_code",
-        "category": "development",
-    },
     "HackerRank": {
         "url": "https://www.hackerrank.com/{}",
         "errorType": "status_code",
@@ -177,18 +172,12 @@ SITES = {
     "PyPI": {
         "url": "https://pypi.org/user/{}",
         "errorType": "message",
-        "errorMsg": "Not Found",
+        "errorMsg": "We looked everywhere but couldn't find this page",
         "category": "development",
     },
     "Docker Hub": {
         "url": "https://hub.docker.com/u/{}",
         "errorType": "status_code",
-        "category": "development",
-    },
-    "Stack Overflow": {
-        "url": "https://stackoverflow.com/users/?tab=accounts&SearchFor={}",
-        "errorType": "message",
-        "errorMsg": "No users matched your",
         "category": "development",
     },
     "Roblox": {
@@ -350,7 +339,8 @@ async def _check_site(
             body_lower = resp.text.lower()
             is_blocked_text = (
                 "cloudflare" in body_lower or 
-                "sucuri" in body_lower
+                "sucuri" in body_lower or
+                "Before you continue" in body_lower
             )
             
             if is_blocked_status or is_blocked_text:
