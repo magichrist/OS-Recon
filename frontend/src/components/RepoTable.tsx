@@ -1,28 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface TableRepoItem {
   name: string;
   language: string;
   stars: number;
+  owner: string;
 }
 
-// Added username to props so the backend knows who owns the repo
 interface RepoTableProps {
-  repos: TableRepoItem[];
-  username: string; 
+  repos?: TableRepoItem[];
 }
 
-export function RepoTable({ repos, username }: RepoTableProps) {
-  // Track which specific repo is expanded by storing its name string
+export function RepoTable({ repos = [] }: RepoTableProps) {
+  const groupedByOwner = useMemo(() => {
+    const groups: Record<string, TableRepoItem[]> = {};
+    
+    if (!repos || !Array.isArray(repos)) return groups;
+
+    repos.forEach((repo) => {
+      const ownerKey = repo.owner || 'unknown'; 
+      if (!groups[ownerKey]) {
+        groups[ownerKey] = [];
+      }
+      groups[ownerKey].push(repo);
+    });
+    return groups;
+  }, [repos]);
+
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [expandedRepo, setExpandedRepo] = useState<string | null>(null);
   const [commits, setCommits] = useState<any[] | null>(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  const analyzeCommits = async (repoName: string) => {
-    if (!repoName) return;
+  const toggleUser = (username: string) => {
+    setExpandedUser(expandedUser === username ? null : username);
+    setExpandedRepo(null);
+    setCommits(null);
+  };
 
-    // Toggle logic: if they click the already open repo, collapse it and stop
-    if (expandedRepo === repoName) {
+  const analyzeCommits = async (repoName: string, repoOwner: string) => {
+    const repoKey = `${repoOwner}/${repoName}`;
+
+    if (expandedRepo === repoKey) {
       setExpandedRepo(null);
       setCommits(null);
       return;
@@ -30,14 +49,13 @@ export function RepoTable({ repos, username }: RepoTableProps) {
 
     setIsScanning(true);
     setCommits(null);
-    setExpandedRepo(repoName); // Open the accordion row immediately to show a loading state
+    setExpandedRepo(repoKey);
 
     try {
       const response = await fetch('http://127.0.0.1:8000/api/scanCommits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Sending both target (repo name) and username context to the backend
-        body: JSON.stringify({ target: repoName, username: username }),
+        body: JSON.stringify({ target: repoName, username: repoOwner }),
       });
       const res = await response.json();
       if (res.status === "completed") {
@@ -50,82 +68,122 @@ export function RepoTable({ repos, username }: RepoTableProps) {
     }
   };
 
+  if (!repos || !Array.isArray(repos) || repos.length === 0) {
+    return (
+      <div style={{ border: '1px solid #222', background: '#111', padding: '1rem', fontFamily: 'monospace' }}>
+        <p style={{ color: '#666', margin: 0 }}>No target logs found.</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ border: '1px solid #222', borderTop: 'none', background: '#111', padding: '1rem' }}>
-      {repos.length === 0 ? (
-        <p style={{ color: '#666' }}>No generic logs found.</p>
-      ) : (
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #333', color: '#888' }}>
-              <th style={{ padding: '0.5rem' }}>Repository</th>
-              <th style={{ padding: '0.5rem' }}>Language</th>
-              <th style={{ padding: '0.5rem' }}>Stars</th>
-              <th style={{ padding: '0.5rem' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {repos.map((repo, idx) => {
-              const isCurrentRepoOpen = expandedRepo === repo.name;
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'monospace' }}>
+      {Object.entries(groupedByOwner).map(([owner, userRepos]) => {
+        const isUserOpen = expandedUser === owner;
 
-              return (
-                <React.Fragment key={idx}>
-                  {/* MAIN DATA ROW */}
-                  <tr style={{ borderBottom: isCurrentRepoOpen ? 'none' : '1px solid #222' }}>
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#fff' }}>{repo.name}</td>
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#aaa' }}>{repo.language}</td>
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#888' }}>★ {repo.stars}</td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}> 
-                      <button
-                        onClick={() => analyzeCommits(repo.name)}
-                        style={{
-                          background: isCurrentRepoOpen ? '#ff3333' : '#222',
-                          color: '#fff',
-                          border: '1px solid #444',
-                          padding: '0.35rem 0.75rem',
-                          cursor: 'pointer',
-                          fontFamily: 'monospace'
-                        }}
-                      >
-                        {isCurrentRepoOpen ? 'Close' : 'Analyze Commits'}
-                      </button> 
-                    </td>
-                  </tr>
+        return (
+          <div key={owner} style={{ border: '1px solid #222', background: '#111' }}>
+            <div
+              onClick={() => toggleUser(owner)}
+              style={{
+                background: isUserOpen ? '#161616' : '#111',
+                padding: '0.75rem 1rem',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: isUserOpen ? '1px solid #222' : 'none',
+                userSelect: 'none'
+              }}
+            >
+              <span style={{ color: isUserOpen ? '#00ff66' : '#fff', fontWeight: 'bold' }}>
+                {isUserOpen ? '▼' : '▶'} @{owner}
+              </span>
+              <span style={{ color: '#666', fontSize: '0.85rem' }}>
+                {userRepos.length} target {userRepos.length === 1 ? 'repo' : 'repos'} discovered
+              </span>
+            </div>
 
-                  {/* INJECTED DROPDOWN ACCORDION ROW */}
-                  {isCurrentRepoOpen && (
-                    <tr style={{ borderBottom: '1px solid #222', background: '#0a0a0a' }}>
-                      <td colSpan={4} style={{ padding: '1rem' }}>
-                        <div style={{ borderLeft: '2px solid #00ff66', paddingLeft: '1rem' }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', color: '#00ff66', fontSize: '0.9rem' }}>
-                            Commits for {repo.name}
-                          </h4>
-                          
-                          {isScanning && (
-                            <p style={{ color: '#888', margin: 0, fontStyle: 'italic' }}>Loading commit history...</p>
-                          )}
-
-                          {!isScanning && commits && commits.length === 0 && (
-                            <p style={{ color: '#666', margin: 0 }}>No public commits found.</p>
-                          )}
-
-                          {!isScanning && commits && commits.map((commit: any, cIdx: number) => (
-                            <div key={cIdx} style={{ margin: '0.5rem 0', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-                              <span style={{ color: '#00ff66' }}>[{commit.sha}]</span>
-                              <span style={{ color: '#aaa', minWidth: '120px' }}>{commit.author}:</span>
-                              <span style={{ color: '#fff' }}>{commit.message}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
+            {isUserOpen && (
+              <div style={{ padding: '1rem', background: '#0d0d0d' }}>
+                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #333', color: '#888' }}>
+                      <th style={{ padding: '0.5rem' }}>Repository</th>
+                      <th style={{ padding: '0.5rem' }}>Language</th>
+                      <th style={{ padding: '0.5rem' }}>Stars</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'right' }}>Actions</th>
                     </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+                  </thead>
+                  <tbody>
+                    {userRepos.map((repo, idx) => {
+                      const currentRepoKey = `${owner}/${repo.name}`;
+                      const isCurrentRepoOpen = expandedRepo === currentRepoKey;
+
+                      return (
+                        <React.Fragment key={idx}>
+                          <tr>
+                            <td style={{ padding: '0.75rem 0.5rem', color: '#fff' }}>{repo.name}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', color: '#aaa' }}>{repo.language || 'Unknown'}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', color: '#888' }}>★ {repo.stars}</td>
+                            <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                              <button
+                                onClick={() => analyzeCommits(repo.name, owner)}
+                                style={{
+                                  background: isCurrentRepoOpen ? '#ff3333' : '#222',
+                                  color: '#fff',
+                                  border: '1px solid #444',
+                                  padding: '0.35rem 0.75rem',
+                                  cursor: 'pointer',
+                                  fontFamily: 'monospace'
+                                }}
+                              >
+                                {isCurrentRepoOpen ? 'Close' : 'Analyze Commits'}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {isCurrentRepoOpen && (
+                            <tr style={{ borderBottom: '1px solid #222', background: '#050505' }}>
+                              <td colSpan={4} style={{ padding: '1rem' }}>
+                                <div style={{ borderLeft: '2px solid #00ff66', paddingLeft: '1rem' }}>
+                                  <h4 style={{ margin: '0 0 0.75rem 0', color: '#00ff66', fontSize: '0.9rem' }}>
+                                    Commits parsed for {repo.name}
+                                  </h4>
+
+                                  {isScanning && (
+                                    <p style={{ color: '#888', margin: 0, fontStyle: 'italic' }}>
+                                      Extracting remote commit logs...
+                                    </p>
+                                  )}
+
+                                  {!isScanning && (!commits || commits.length === 0) && (
+                                    <p style={{ color: '#666', margin: 0 }}>No leaked meta or public commits found.</p>
+                                  )}
+
+                                  {!isScanning && Array.isArray(commits) && commits.map((commit: any, cIdx: number) => (
+                                    <div key={cIdx} style={{ margin: '0.5rem 0', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
+                                      <span style={{ color: '#00ff66' }}>
+                                        [{commit?.sha ? commit.sha.substring(0, 7) : 'no-sha'}]
+                                      </span>
+                                      <span style={{ color: '#aaa', minWidth: '120px' }}>{commit?.author || 'Unknown'}:</span>
+                                      <span style={{ color: '#fff' }}>{commit?.message || 'No message'}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -436,11 +436,9 @@ async def scan_username(username: str) -> dict:
             categories[cat] = []
         categories[cat].append(r)
 
-    github_username = None
-    for r in results:
-        if r["site"] == "GitHub":
-            github_username = r["username"]
-            break
+    github_usernames = [
+        r["username"] for r in results if r["site"] == "GitHub"
+    ]
 
     return {
         "username": username,
@@ -448,5 +446,5 @@ async def scan_username(username: str) -> dict:
         "total_checked": len(SITES) * len(variations),
         "results": results,
         "categories": categories,
-        "github_username": github_username,
+        "github_username": github_usernames,
     }
