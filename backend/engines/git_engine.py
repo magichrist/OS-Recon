@@ -121,26 +121,31 @@ async def extract_emails_from_commits(username: str, repos: list) -> list[str]:
     if not repos:
         return []
     
-    selected_repos = random.sample(repos, min(5, len(repos)))
+    selected_repos = random.sample(repos, min(10, len(repos)))
+
+    semaphore = asyncio.Semaphore(3)
     
     async def fetch_commits(client: httpx.AsyncClient, repo: dict) -> list:
         repo_name = repo.get("name") or repo.get("full_name", "").split("/")[-1]
         if not repo_name:
             return []
-            
-        try:
-            response = await client.get(
-                f"https://api.github.com/repos/{username}/{repo_name}/commits",
-                params={"per_page": 30},
-                headers={"Accept": "application/vnd.github+json"},
-                timeout=10
-            )
-            if response.status_code == 200:
-                return response.json()
-        except httpx.RequestError:
-            pass
-            
-        return []
+        
+        async with semaphore:
+            try:
+                await asyncio.sleep(random.uniform(0.2, 0.5))
+                
+                response = await client.get(
+                    f"https://api.github.com/repos/{username}/{repo_name}/commits",
+                    params={"per_page": 30},
+                    headers={"Accept": "application/vnd.github+json"},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    return response.json()
+            except httpx.RequestError:
+                pass
+                
+            return []
 
     async with httpx.AsyncClient() as client:
         tasks = [fetch_commits(client, repo) for repo in selected_repos]
