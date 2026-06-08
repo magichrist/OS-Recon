@@ -1,9 +1,13 @@
 import asyncio
 import sys
+import json
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Any, Optional, List
+from engines.ai_engine import ai_engine
+
 
 # Resilient Windows subprocess execution configuration for asyncio
 if sys.platform == "win32":
@@ -49,6 +53,8 @@ def _is_github_input(text: str) -> bool:
 
 
 # --- Route Implementations ---
+
+# DEFAULT SCAN ENDPOINT
 
 @app.post("/api/scan")
 async def handle_scan(request: ScanRequest):
@@ -156,6 +162,7 @@ async def handle_scan(request: ScanRequest):
             "git_data": git_data,
         }
     
+# COMMIT SCAN ENDPOINT
 
 @app.post("/api/scanCommits")
 async def handle_scan_commits(request: CommitRequest):
@@ -175,6 +182,7 @@ async def handle_scan_commits(request: CommitRequest):
         "data": result["commits"]
     }
 
+# DEEP PRY ENDPOINT
 
 @app.post("/api/pry", response_model=PryResponse)
 async def handle_deep_pry(request: PryRequest):
@@ -192,3 +200,23 @@ async def handle_deep_pry(request: PryRequest):
         "engine": "nodriver_pry",
         "data": completed_runs
     }
+
+# AI ANALYSIS ENDPOINT
+
+class AnalysisRequest(BaseModel):
+    social: Any
+    github: Optional[Any] = None
+    deepPry: Optional[List[Any]] = None
+
+@app.post("/api/analyze")
+async def handle_ai_analysis(request: AnalysisRequest):
+    try:
+        payload_data = {
+            "social": request.social,
+            "github": request.github,
+            "deepPry": request.deepPry
+        }
+        report = ai_engine.generate_report(payload_data)
+        return {"analysis": report}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

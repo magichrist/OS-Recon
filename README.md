@@ -9,28 +9,27 @@
 [![HTTPX](https://img.shields.io/badge/HTTPX-Async_HTTP-1f425f?style=flat-square&logo=target&logoColor=white)](https://www.python-httpx.org/)
 [![curl-cffi](https://img.shields.io/badge/curl--cffi-Impersonate_TLS-064a6b?style=flat-square&logo=curl&logoColor=white)](https://github.com/lexiforest/curl_cffi)
 
-
-Built around three engines: a fast async social scanner, a stealth browser orchestration layer (nodriver), and a GitHub intelligence module that audits repositories, parses commit history, and extracts developer metadata automatically.
+Built around three engines: a fast async social scanner, a stealth browser orchestration layer (`nodriver`), and a GitHub intelligence module that audits repositories, parses commit history, and extracts developer metadata automatically.
 
 Results are split into prioritized risks and general logs - designed with structured data output in mind for downstream analysis.
 
 > !! Early MVP: expect bugs and unfinished modules.
 
-## FEATURES ATM: (readme last updated on June 2 2026)
-- **DeepPry Launchpad UI:** An interactive profile view, tracking target accounts with automatic cross origin media fallback protocols for forbidden resource handling.
-- **Stealth Browser Orchestration:** Advanced deep-reconnaissance module (`nodriver`) that spawns concurrent, isolated headless Chrome instances to bypass anti-scraping walls.
-- **Deep Profile Telemetry Extraction:** Captures un-vetted metadata blocks including biography extracts, cross-referenced outbound links, and dynamic platform specific variables (followers, post counts, bios, etc.).
-- **FastAPI server backend:** Runs asynchronous tasks, used for fetching with httpx & curl_cffi. Collects data on a username(s).
-- **Analytics:** After deep prying, analyze the results. Show the user confidence scores, how much data the scanner pulled, etc.
-- **Automatic github deep scan:** Automated intelligence that uses GitHub's API to extract repository risks, parse metadata metrics, exposed emails, and audit commit history.
+## FEATURES ATM: (readme last updated on June 8, 2026)
+- **DeepPry Launchpad UI:** Profile view tracking target accounts with automatic cross-origin media fallback protocols.
+- **Stealth Browser Orchestration:** Advanced deep-recon module (`nodriver`) spawning concurrent, isolated headless Chrome instances to bypass anti-scraping walls.
+- **Deep Profile Telemetry Extraction:** Captures metadata blocks including bio extracts, cross-referenced outbound links, and dynamic platform-specific variables.
+- **FastAPI Backend Server:** Handles asynchronous tasks, fetching via `httpx` & `curl_cffi` to collect target registry metrics concurrently.
+- **Dual-Engine Analytics Tab:** Interface sub-tab selector that separates raw telemetry calculations from synthesized intelligence platforms without state loss.
+- **Automated AI Threat Cognition Engine:** Prompt-engineered pipeline powered by Groq (`llama-3.1-8b-instant`) that filters out scraper boilerplate noise and converts raw telemetry dumps into a structured, defensive terminal risk evaluation report.
+- **Automatic GitHub Deep Scan:** Intelligence module utilizing the GitHub API to parse repository risks, extract exposed metadata, and flag hidden email addresses in commit histories.
 
 ## TODO:
-- Implement data & AI analysis & custom data imports that goes along with that (to give the LLM more context if needed so it can analyze better)
+- Implement custom metadata/data overrides and manual imports to enrich target data before executing cognitive completions.
 - Add more deep scraping features (video metadata for social media, etc.)
 - Improve on the scanner to yield less false positives.
 
 ## FUTURE FEATURES TASKLIST:
-- LLM integration (analysis engine, NOT a chatbot): fully prompt engineered module that analyzes deep scan data and returns structured output rendered directly in the UI - bio pattern analysis, cross-platform connection mapping, risk flagging, etc.
 - Deep source code scanner looking for secrets inside files.
 - Port to electron for easier running.
 
@@ -40,7 +39,7 @@ OS-RECON/
 ├── backend/                    # The backend server folder, handles scraping & processing.
 │   ├── engines/                # Scrapers and parsers depending on input type.
 │   │   ├── payloads/           # Javascript payloads used for the pry_engine.
-│   │   │   └── payload_store.py # The base JS payload used to collect data from the selected websites.
+│   │   │   └── payload_store.py
 │   │   ├── git_engine.py       # GitHub repository analysis & commit fetching.
 │   │   ├── pry_engine.py       # Stealth browser automation engine via nodriver.
 │   │   └── social_engine.py    # Asynchronous username check registry & probe logic.
@@ -52,6 +51,17 @@ OS-RECON/
 > **Disclaimer: This tool is developed strictly for educational, security auditing, and authorized open-source intelligence research. The developer assumes no liability for misuse or violations of third-party terms of service.**
 
 Requires Python 3.10+ and Node.js 18+. Chrome must be installed for the stealth browser module.
+
+### AI Analysis Activation (Optional)
+> The cognitive threat intelligence tab requires a Groq API token. If you choose not to use the AI analysis engine, the core passive scanners, GitHub parsing, and nodriver stealth orchestration layers will still function completely normally without it.
+
+1. Head to the Groq Console.
+2. Generate a new API key under the API Keys management dashboard.
+3. Create a .env file in the backend/ directory and append your key:
+
+```env
+GROQ_API_KEY=gsk_your_high_security_token_here
+```
 
 ### Backend
 ```bash

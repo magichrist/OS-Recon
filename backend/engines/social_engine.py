@@ -28,7 +28,7 @@ SITES = {
         "category": "social",
     },
     "X (Twitter)": {
-        "url": "https://nitter.privacydev.net/{}",
+        "url": "https://x.com/{}",
         "errorType": "message",
         "errorMsg": "User \"",
         "category": "social",
