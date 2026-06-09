@@ -15,6 +15,29 @@ Results are split into prioritized risks and general logs - designed with struct
 
 > !! Early MVP: expect bugs and unfinished modules.
 
+## DEMO
+
+### Scan & Select
+Input one or more usernames and OS-Recon's async scanner probes dozens of platforms concurrently. Found profiles are flagged and queued - ready for deep extraction. If a platform blocks you, it's flagged as blocked for the user to manually check.
+
+<img width="800" height="383" alt="scan" src="https://github.com/user-attachments/assets/acff4b80-9fc4-47be-8a75-0201f6e0efa5" />
+
+---
+
+### Deep Pry
+Select your targets and launch the nodriver drones. Isolated stealth Chrome instances bypass anti-scraping walls and pull raw metadata, bios, outbound links, and platform-specific variables that static scanners can't reach. Collects the data for more advanced Analytics.
+
+<img width="800" height="384" alt="deep pry" src="https://github.com/user-attachments/assets/ff11eb78-d9f9-4ee9-b7bb-d91552211612" />
+
+---
+
+### AI Analytics
+All harvested telemetry is piped through a prompt-engineered Groq pipeline that strips scraper noise and produces a structured, prioritized risk evaluation report. Designed to detect patterns, username consistency and more. (WIP)
+
+<img width="800" height="384" alt="analytics" src="https://github.com/user-attachments/assets/d77ef5b2-7f7e-4b8a-9f87-13e20a379412" />
+
+---
+
 ## FEATURES ATM: (readme last updated on June 8, 2026)
 - **DeepPry Launchpad UI:** Profile view tracking target accounts with automatic cross-origin media fallback protocols.
 - **Stealth Browser Orchestration:** Advanced deep-recon module (`nodriver`) spawning concurrent, isolated headless Chrome instances to bypass anti-scraping walls.
