@@ -1,4 +1,4 @@
-# OS-RECON
+# OS-RECON • [![License: AGPL v3](https://img.shields.io/badge/license-AGPL_3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.html) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com) [![Issues Welcome](https://img.shields.io/badge/issues-welcome-brightgreen.svg)](https://github.com/your-username/OS-Recon/issues) [![Maintenance](https://img.shields.io/badge/maintained-yes-brightgreen.svg)](https://github.com/ic0e/OS-Recon/graphs/commit-activity)
 > A local reconnaissance dashboard for digital footprint analysis. Unlike standard username checkers, OS-Recon combines passive social scanning with active deep-profile extraction - spawning isolated stealth browser instances using `nodriver` to bypass anti-scraping walls and pull raw metadata that static scanners can't reach.
 
 [![Python](https://img.shields.io/badge/Python-3.14-3776ab?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
