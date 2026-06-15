@@ -1,7 +1,6 @@
 import asyncio
 import re
 
-import httpx
 from curl_cffi.requests import AsyncSession
 
 # ──────────────────────────────────────────────────────────
@@ -340,7 +339,7 @@ def generate_username_variations(base_username: str) -> list[str]:
 
 
 async def _check_site(
-    client: httpx.AsyncClient,
+    client: AsyncSession,
     site_name: str,
     site_cfg: dict,
     username: str,
@@ -359,7 +358,7 @@ async def _check_site(
             is_blocked_text = (
                 "cloudflare" in body_lower
                 or "sucuri" in body_lower
-                or "Before you continue" in body_lower
+                or "before you continue" in body_lower
             )
 
             if is_blocked_status or is_blocked_text:
@@ -367,7 +366,7 @@ async def _check_site(
                     "site": site_name,
                     "url": site_cfg["url"].format(username).replace("/about.json", ""),
                     "category": site_cfg.get("category", "other"),
-                    "status": "Blocked",  # flags the website as blocked
+                    "status": "Blocked",
                     "username": username,
                 }
 
@@ -402,8 +401,6 @@ async def _check_site(
                     "username": username,
                 }
 
-        except (httpx.ConnectTimeout, httpx.ReadTimeout):
-            pass
         except Exception:
             pass
 
@@ -418,7 +415,6 @@ async def scan_username(username: str) -> dict:
         if not variations:
             return {"error": "No valid usernames provided."}
 
-        # Validate format for each username
         for var in variations:
             if not re.match(r"^[a-zA-Z0-9._-]{1,40}$", var):
                 return {"error": f"Invalid username format: '{var}'"}
@@ -429,7 +425,6 @@ async def scan_username(username: str) -> dict:
         ):
             return {"error": "Invalid username format."}
 
-        # Generate variations if it's a single input
         variations = generate_username_variations(cleaned_username)
 
     semaphore = asyncio.Semaphore(15)
@@ -440,7 +435,9 @@ async def scan_username(username: str) -> dict:
         "Accept-Language": "en-US,en;q=0.9",
     }
 
-    async with AsyncSession(impersonate="chrome", timeout=12.0) as client:
+    async with AsyncSession(
+        impersonate="chrome", timeout=12.0, headers=headers
+    ) as client:
         tasks = [
             _check_site(client, name, cfg, variant, semaphore)
             for variant in variations
@@ -450,7 +447,6 @@ async def scan_username(username: str) -> dict:
 
     results = [r for r in raw_results if r is not None]
 
-    # Group by category
     categories: dict[str, list[dict]] = {}
     for r in results:
         cat = r["category"]
