@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Optional, List
 from engines.ai_engine import get_ai_engine
+from utils.security import is_safe_url
 
 
 # Resilient Windows subprocess execution configuration for asyncio
@@ -188,6 +189,13 @@ async def handle_scan_commits(request: CommitRequest):
 async def handle_deep_pry(request: PryRequest):
     if not request.targets:
         raise HTTPException(status_code=400, detail="Target processing queue stack cannot be empty.")
+    
+    for profile in request.targets:
+        if not is_safe_url(profile.url):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Access denied: URL {profile.url} is an invalid or restricted destination."
+            )
 
     print(f"[*] Beginning stealth multi-session execution queue for {len(request.targets)} items...")
     
