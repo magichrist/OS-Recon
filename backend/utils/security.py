@@ -1,6 +1,7 @@
+import ipaddress
 import socket
 from urllib.parse import urlparse
-import ipaddress
+
 
 def is_safe_url(url: str) -> bool:
     try:
@@ -8,7 +9,7 @@ def is_safe_url(url: str) -> bool:
         # standard web protocols only
         if parsed_url.scheme not in ["http", "https"]:
             return False
-        
+
         hostname = parsed_url.hostname
         if not hostname:
             return False
@@ -19,11 +20,11 @@ def is_safe_url(url: str) -> bool:
 
         # block private, loopback, local, and reserved ranges
         if (
-            ip.is_private or 
-            ip.is_loopback or 
-            ip.is_link_local or 
-            ip.is_reserved or
-            ip.is_unspecified
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_unspecified
         ) or ip_string == "169.254.169.254":
             return False
 

@@ -1,22 +1,25 @@
 import asyncio
-import sys
 import json
-from typing import List
+import sys
+from typing import Any, List, Optional
+
+from engines.ai_engine import get_ai_engine
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Any, Optional, List
-from engines.ai_engine import get_ai_engine
 from utils.security import is_safe_url
-
 
 # Resilient Windows subprocess execution configuration for asyncio
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Core OSINT Engine Imports
-from engines.pry_engine import scrape_isolated_session, TargetProfile, PryResult
-from engines.git_engine import analyze_github_target, fetch_repo_commits, extract_emails_from_commits
+from engines.git_engine import (
+    analyze_github_target,
+    extract_emails_from_commits,
+    fetch_repo_commits,
+)
+from engines.pry_engine import PryResult, TargetProfile, scrape_isolated_session
 from engines.social_engine import scan_username
 
 app = FastAPI()
@@ -32,15 +35,19 @@ app.add_middleware(
 
 # --- Request / Response Validation Schemas ---
 
+
 class ScanRequest(BaseModel):
     target: str
+
 
 class CommitRequest(BaseModel):
     target: str
     username: str
 
+
 class PryRequest(BaseModel):
     targets: List[TargetProfile]
+
 
 class PryResponse(BaseModel):
     status: str
@@ -56,6 +63,7 @@ def _is_github_input(text: str) -> bool:
 # --- Route Implementations ---
 
 # DEFAULT SCAN ENDPOINT
+
 
 @app.post("/api/scan")
 async def handle_scan(request: ScanRequest):
@@ -88,10 +96,7 @@ async def handle_scan(request: ScanRequest):
             "status": "completed",
             "engine": "social",
             "data": social_result,
-            "git_data": {
-                **git_data,
-                "exposed_emails": exposed_emails
-            }
+            "git_data": {**git_data, "exposed_emails": exposed_emails},
         }
 
     else:
@@ -100,7 +105,11 @@ async def handle_scan(request: ScanRequest):
         if "error" in social_result:
             raise HTTPException(status_code=400, detail=social_result["error"])
 
-        github_targets = social_result.get("github_usernames") or social_result.get("github_username") or []
+        github_targets = (
+            social_result.get("github_usernames")
+            or social_result.get("github_username")
+            or []
+        )
         if isinstance(github_targets, str):
             github_targets = [github_targets]
 
@@ -133,17 +142,16 @@ async def handle_scan(request: ScanRequest):
             email_tasks = [
                 extract_emails_from_commits(
                     git_res.get("username"),
-                    git_res.get("interesting", []) + git_res.get("standard", [])
+                    git_res.get("interesting", []) + git_res.get("standard", []),
                 )
-                for git_res in git_results if git_res and "error" not in git_res
+                for git_res in git_results
+                if git_res and "error" not in git_res
             ]
             email_results = await asyncio.gather(*email_tasks)
 
-            all_exposed_emails = list({
-                email
-                for emails in email_results
-                for email in emails
-            })
+            all_exposed_emails = list(
+                {email for emails in email_results for email in emails}
+            )
 
             git_data = {
                 "username": ", ".join(found_usernames),
@@ -152,8 +160,8 @@ async def handle_scan(request: ScanRequest):
                 "exposed_emails": all_exposed_emails,
                 "metrics": {
                     "interesting_count": len(aggregated_interesting),
-                    "standard_count": len(aggregated_standard)
-                }
+                    "standard_count": len(aggregated_standard),
+                },
             }
 
         return {
@@ -162,54 +170,59 @@ async def handle_scan(request: ScanRequest):
             "data": social_result,
             "git_data": git_data,
         }
-    
+
+
 # COMMIT SCAN ENDPOINT
+
 
 @app.post("/api/scanCommits")
 async def handle_scan_commits(request: CommitRequest):
     repo_name = request.target.strip()
     username = request.username.strip()
-    
+
     if not repo_name or not username:
-        raise HTTPException(status_code=400, detail="Repository name and username are required.")
-    
+        raise HTTPException(
+            status_code=400, detail="Repository name and username are required."
+        )
+
     result = await fetch_repo_commits(username, repo_name)
-    
+
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
-        
-    return {
-        "status": "completed",
-        "data": result["commits"]
-    }
+
+    return {"status": "completed", "data": result["commits"]}
+
 
 # DEEP PRY ENDPOINT
+
 
 @app.post("/api/pry", response_model=PryResponse)
 async def handle_deep_pry(request: PryRequest):
     if not request.targets:
-        raise HTTPException(status_code=400, detail="Target processing queue stack cannot be empty.")
-    
+        raise HTTPException(
+            status_code=400, detail="Target processing queue stack cannot be empty."
+        )
+
     for profile in request.targets:
         if not is_safe_url(profile.url):
             raise HTTPException(
                 status_code=400,
-                detail=f"Access denied: URL {profile.url} is an invalid or restricted destination."
+                detail=f"Access denied: URL {profile.url} is an invalid or restricted destination.",
             )
 
-    print(f"[*] Beginning stealth multi-session execution queue for {len(request.targets)} items...")
-    
+    print(
+        f"[*] Beginning stealth multi-session execution queue for {len(request.targets)} items..."
+    )
+
     # Fire off concurrent tasks across our engine workers
     tasks = [scrape_isolated_session(profile) for profile in request.targets]
     completed_runs = await asyncio.gather(*tasks)
-    
-    return {
-        "status": "completed",
-        "engine": "nodriver_pry",
-        "data": completed_runs
-    }
+
+    return {"status": "completed", "engine": "nodriver_pry", "data": completed_runs}
+
 
 # AI ANALYSIS ENDPOINT
+
 
 class AnalysisRequest(BaseModel):
     social: Any
@@ -224,7 +237,7 @@ async def handle_ai_analysis(request: AnalysisRequest):
         payload_data = {
             "social": request.social,
             "github": request.github,
-            "deepPry": request.deepPry
+            "deepPry": request.deepPry,
         }
         report = engine.generate_report(payload_data)
         return {"analysis": report}

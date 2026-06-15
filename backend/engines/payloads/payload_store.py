@@ -3,7 +3,7 @@ MINER_SCRIPT = """
 (() => {
     let url = window.location.href.toLowerCase();
     let docText = document.documentElement.innerHTML;
-    
+
     let extracted = {
         display_name: "",
         avatar_url: "",
@@ -18,7 +18,7 @@ MINER_SCRIPT = """
         document.querySelectorAll("a[href]").forEach(a => {
             let href = a.href;
             if (href && href.startsWith("http") && !href.includes(host)) {
-                if (!href.includes("terms") && !href.includes("policies") && !href.includes("privacy") && !href.includes("github.blog") && !found.includes(href)) {
+                if (!href.includes("terms") && !href.includes("policies") && !href.includes("privacy") && !href.includes("github.blog") && !href.includes("camo.githubusercontent.com") && !href.includes("avatars.githubusercontent.com") && !href.includes("githubstatus.com") && !found.includes(href)) {
                     found.push(href);
                 }
             }
@@ -55,15 +55,15 @@ MINER_SCRIPT = """
             let nameEl = document.querySelector(".p-name");
             let bioEl = document.querySelector(".p-note");
             let avatarEl = document.querySelector(".avatar-user");
-            
+
             extracted.display_name = nameEl ? nameEl.innerText.trim() : "";
             extracted.bio = bioEl ? bioEl.innerText.trim() : "";
             extracted.avatar_url = avatarEl ? avatarEl.src : "";
-            
+
             let followersEl = document.querySelector("a[href*='tab=followers'] .Counter");
             let followingEl = document.querySelector("a[href*='tab=following'] .Counter");
             let reposEl = document.querySelector("span[data-org-item='repos_count'], .Counter[data-view-component='true']");
-            
+
             extracted.platform_specific = {
                 followers: followersEl ? followersEl.innerText.trim() : "0",
                 following: followingEl ? followingEl.innerText.trim() : "0",
@@ -82,10 +82,10 @@ MINER_SCRIPT = """
             }
             let metaImg = document.querySelector('meta[property="og:image"]');
             if (metaImg) extracted.avatar_url = metaImg.getAttribute("content");
-            
+
             let bioEl = document.querySelector('div[data-testid="profile-bio"], #profile-bio-id');
             extracted.bio = bioEl ? bioEl.innerText.trim() : "";
-            
+
             let karmaEl = document.querySelector("#profile-karma-id") || document.querySelector("[karma]");
             extracted.platform_specific = {
                 karma: karmaEl ? karmaEl.innerText.trim() : "N/A",
@@ -103,7 +103,7 @@ MINER_SCRIPT = """
                 extracted.display_name = mainObj.name || mainObj.alternativeName;
                 extracted.avatar_url = mainObj.image || "";
                 extracted.bio = mainObj.description || "";
-                
+
                 if (mainObj.interactionStatistic) {
                     let stats = Array.isArray(mainObj.interactionStatistic) ? mainObj.interactionStatistic : [mainObj.interactionStatistic];
                     stats.forEach(s => {
