@@ -74,7 +74,7 @@ async def handle_scan(request: ScanRequest):
         raise HTTPException(status_code=400, detail="Target cannot be empty.")
 
     if _is_github_input(input_data):
-        git_data = await analyze_github_target(input_data)
+        git_data: dict | None = await analyze_github_target(input_data)
 
         if "error" in git_data:
             raise HTTPException(status_code=400, detail=git_data["error"])
@@ -83,7 +83,7 @@ async def handle_scan(request: ScanRequest):
             git_data["username"], include_variations=request.include_variations
         )
 
-        owner_name = git_data.get("username")
+        owner_name = git_data.get("username", "")
         all_repos = git_data.get("interesting", []) + git_data.get("standard", [])
 
         for repo in git_data.get("interesting", []):
@@ -133,7 +133,7 @@ async def handle_scan(request: ScanRequest):
                     owner_name = git_res.get("username")
                     if owner_name:
                         found_usernames.append(owner_name)
-
+                    
                     for repo in git_res.get("interesting", []):
                         if "owner" not in repo:
                             repo["owner"] = owner_name
