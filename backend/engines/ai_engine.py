@@ -45,7 +45,11 @@ class AIEngine:
             "connective tissue between profiles. Flag anything that could be used as a pivot to undiscovered accounts.\n\n"
             "Phase 3: TARGET PROFILE & BEHAVIORAL MATRIX\n"
             "   Infer skillset from technical stack and repo activity. Assess operational security awareness based on what "
-            "they expose vs. obscure. End with one [-] tracking recommendation — the single most useful next step for continued OSINT on this target.\n"
+            "they expose vs. obscure. End with one [-] tracking recommendation — the single most useful next step for continued OSINT on this target.\n\n"
+            "Phase 4: EXTERNAL ENRICHMENT CORRELATION\n"
+            "   Analyze breach intelligence, threat detection, and infrastructure reputation data from enrichment providers. "
+            "Correlate exposed credentials across breaches. Flag any IPs/domains with known malware associations. "
+            "Rate the overall OpSec risk based on cumulative enrichment signals.\n"
         )
 
     def _prune_payload(self, raw_data: dict) -> dict:
@@ -57,6 +61,7 @@ class AIEngine:
             },
             "github": None,
             "deepPry": [],
+            "enrichment": [],
         }
 
         git = raw_data.get("github")
@@ -100,6 +105,20 @@ class AIEngine:
                         else [],
                     }
                 )
+
+        enrichment = raw_data.get("enrichment")
+        if enrichment and isinstance(enrichment, list):
+            for item in enrichment:
+                if isinstance(item, dict):
+                    pruned["enrichment"].append(
+                        {
+                            "provider": item.get("provider"),
+                            "target_type": item.get("target_type"),
+                            "target_value": item.get("target_value"),
+                            "summary": item.get("summary"),
+                            "severity": item.get("severity"),
+                        }
+                    )
 
         return pruned
 

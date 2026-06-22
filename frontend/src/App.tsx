@@ -18,7 +18,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("overview");
   const [variationsCheck, setVariationsCheck] = useState(false);
 
-  const { setAiReport, setAiLoading, setAiError } = useScanner();
+  const { setAiReport, setAiLoading, setAiError, setEnrichmentData, enrichmentData } = useScanner();
 
   const startRecon = async () => {
     if (!inputTarget) return;
@@ -54,6 +54,9 @@ function App() {
         if (res.git_data) {
           setGitData(res.git_data);
         }
+        if (res.enrichment) {
+          setEnrichmentData(res.enrichment);
+        }
       }
     } catch (error) {
       console.error("Connection error", error);
@@ -74,6 +77,7 @@ function App() {
     setAiReport(null);
     setAiLoading(false);
     setAiError(null);
+    setEnrichmentData(null);
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -256,7 +260,7 @@ function App() {
             </p>
           </div>
 
-          <SocialOverview socialData={scanData} gitData={gitData} />
+          <SocialOverview socialData={scanData} gitData={gitData} enrichmentData={enrichmentData} />
         </div>
       )}
     </div>

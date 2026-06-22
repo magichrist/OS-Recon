@@ -22,6 +22,9 @@ from engines.git_engine import (
 from engines.pry_engine import PryResult, TargetProfile, scrape_isolated_session
 from engines.social_engine import scan_username
 
+# Enrichment Pipeline
+from engines.enrichment import run_enrichment_pipeline
+
 app = FastAPI()
 
 # Allow the React UI layout layer to bypass cross-origin browser policies
@@ -95,11 +98,18 @@ async def handle_scan(request: ScanRequest):
 
         exposed_emails = await extract_emails_from_commits(owner_name, all_repos)
 
+        enhanced_git_data = {**git_data, "exposed_emails": exposed_emails}
+
+        enrichment_results = await run_enrichment_pipeline(
+            social_data=social_result, git_data=enhanced_git_data
+        )
+
         return {
             "status": "completed",
             "engine": "social",
             "data": social_result,
-            "git_data": {**git_data, "exposed_emails": exposed_emails},
+            "git_data": enhanced_git_data,
+            "enrichment": enrichment_results,
         }
 
     else:
@@ -169,11 +179,16 @@ async def handle_scan(request: ScanRequest):
                 },
             }
 
+        enrichment_results = await run_enrichment_pipeline(
+            social_data=social_result, git_data=git_data
+        )
+
         return {
             "status": "completed",
             "engine": "social",
             "data": social_result,
             "git_data": git_data,
+            "enrichment": enrichment_results,
         }
 
 
@@ -233,6 +248,7 @@ class AnalysisRequest(BaseModel):
     social: Any
     github: Optional[Any] = None
     deepPry: Optional[List[Any]] = None
+    enrichment: Optional[List[Any]] = None
 
 
 @app.post("/api/analyze")
@@ -243,6 +259,7 @@ async def handle_ai_analysis(request: AnalysisRequest):
             "social": request.social,
             "github": request.github,
             "deepPry": request.deepPry,
+            "enrichment": request.enrichment,
         }
         report = engine.generate_report(payload_data)
         return {"analysis": report}

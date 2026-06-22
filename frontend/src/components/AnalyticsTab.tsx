@@ -10,12 +10,14 @@ interface AnalyticsTabProps {
   };
   gitData: any | null;
   pryResults: any[] | null;
+  enrichmentData: any[] | null;
 }
 
 export function AnalyticsTab({
   scanData,
   gitData,
   pryResults,
+  enrichmentData,
 }: AnalyticsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<"telemetry" | "ai">(
     "telemetry",
@@ -97,6 +99,7 @@ export function AnalyticsTab({
           scanData={scanData}
           gitData={gitData}
           pryResults={pryResults}
+          enrichmentData={enrichmentData}
         />
       </div>
     </div>

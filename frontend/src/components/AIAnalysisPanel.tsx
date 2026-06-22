@@ -4,6 +4,7 @@ interface AIAnalysisPanelProps {
   scanData: any;
   gitData: any | null;
   pryResults: any[] | null;
+  enrichmentData: any[] | null;
 }
 
 interface AIAnalysisViewerProps {
@@ -144,6 +145,7 @@ export function AIAnalysisPanel({
   scanData,
   gitData,
   pryResults,
+  enrichmentData,
 }: AIAnalysisPanelProps) {
   const {
     aiReport: report,
@@ -165,6 +167,7 @@ export function AIAnalysisPanel({
           social: scanData,
           github: gitData,
           deepPry: pryResults,
+          enrichment: enrichmentData,
         }),
       });
 
@@ -208,6 +211,23 @@ export function AIAnalysisPanel({
       txtContent += `Followers   : ${profileMeta.platform_specific?.followers || 0}\n`;
       txtContent += `Total Repos : ${profileMeta.platform_specific?.repositories || 0}\n`;
       txtContent += `Exposed E-mail(s): ${emails.join(", ") || "None detected."}\n\n`;
+    }
+
+    // ENRICHMENT DATA
+    if (enrichmentData && enrichmentData.length > 0) {
+      txtContent += `[+] EXTERNAL ENRICHMENT INTELLIGENCE (${enrichmentData.length} findings)\n`;
+      txtContent += `--------------------------------------------------\n`;
+      const severityOrder = ["critical", "high", "medium", "low", "info"];
+      for (const sev of severityOrder) {
+        const sevItems = enrichmentData.filter((f) => (f.severity || "info") === sev);
+        if (sevItems.length === 0) continue;
+        txtContent += `\n[${sev.toUpperCase()}] ${sevItems.length} finding(s):\n`;
+        sevItems.forEach((f) => {
+          txtContent += `  [${f.provider.toUpperCase()}] ${f.target_type}:${f.target_value}\n`;
+          txtContent += `  ${f.summary}\n\n`;
+        });
+      }
+      txtContent += `\n`;
     }
 
     // REPOS

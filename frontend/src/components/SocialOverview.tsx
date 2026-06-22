@@ -3,18 +3,22 @@ import { SocialResults } from './SocialResults';
 import { OverviewTab } from './OverviewTab';
 import { DeepPryLaunchpad } from './DeepPry';
 import { AnalyticsTab } from './AnalyticsTab';
+import { EnrichmentPanel } from './EnrichmentPanel';
+import type { EnrichmentFinding } from '../context/ScannerContext';
 
 interface SocialOverviewProps {
   socialData: any;
   gitData: any | null;
+  enrichmentData: EnrichmentFinding[] | null;
 }
 
-export function SocialOverview({ socialData, gitData }: SocialOverviewProps) {
-  const [activeSection, setActiveSection] = useState<'social' | 'github' | 'deep pry' | 'analytics'>('social');
+export function SocialOverview({ socialData, gitData, enrichmentData }: SocialOverviewProps) {
+  const [activeSection, setActiveSection] = useState<'social' | 'github' | 'deep pry' | 'enrichment' | 'analytics'>('social');
   const [showStandardList, setShowStandardList] = useState(false);
   const [pryResults, setPryResults] = useState<any[] | null>(null);
 
   const hasGitHub = gitData !== null;
+  const hasEnrichment = enrichmentData && enrichmentData.length > 0;
 
   return (
     <div>
@@ -70,6 +74,23 @@ export function SocialOverview({ socialData, gitData }: SocialOverviewProps) {
           DEEP PRY QUEUE
         </button>
 
+        {hasEnrichment && (
+          <button
+            onClick={() => setActiveSection('enrichment')}
+            style={{
+              background: activeSection === 'enrichment' ? '#ff6622' : '#141414',
+              color: activeSection === 'enrichment' ? '#000' : '#ff6622',
+              border: activeSection === 'enrichment' ? 'none' : '1px solid #ff6622',
+              padding: '0.75rem 1.75rem',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontFamily: 'monospace',
+            }}
+          >
+            ENRICHMENT ({enrichmentData.length})
+          </button>
+        )}
+
         <button
           onClick={() => setActiveSection('analytics')}
           style={{
@@ -120,11 +141,27 @@ export function SocialOverview({ socialData, gitData }: SocialOverviewProps) {
         <DeepPryLaunchpad onPryComplete={setPryResults} pryResults={pryResults}/>
       )}
 
+      {activeSection === 'enrichment' && enrichmentData && (
+        <div>
+          <div style={{
+            background: '#141414', padding: '1rem', marginBottom: '1.5rem',
+            borderLeft: '4px solid #ff6622',
+          }}>
+            <p style={{ color: '#aaa', fontFamily: 'monospace', fontSize: '0.85rem', margin: 0 }}>
+              External intelligence enrichment results from breach databases, threat detection, and infrastructure scanners.
+              Configure API keys in your .env file to activate providers.
+            </p>
+          </div>
+          <EnrichmentPanel findings={enrichmentData} />
+        </div>
+      )}
+
       {activeSection === 'analytics' && (
         <AnalyticsTab
           scanData={socialData}
           gitData={gitData}
           pryResults={pryResults}
+          enrichmentData={enrichmentData}
         />
       )}
     </div>
